@@ -1,0 +1,7 @@
+version: '3'
+
+services:
+  watchdog:
+    build: .
+    env_file: .env
+    restart: always
