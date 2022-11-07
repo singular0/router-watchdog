@@ -33,10 +33,11 @@ logging.basicConfig(
     handlers=[log_handler]
 )
 
-logging.info(f"Router host [{router_host}]")
-logging.info(f"Check host [{check_host}], period {check_interval} min, {check_attempts} attempts")
-logging.info(f"Post reboot delay {post_reboot_delay} s")
-logging.info(f"Log level {log_level}")
+logging.info(f"Will check [{check_host}] once in {check_interval} min")
+logging.info(f"Will attempt {check_attempts} times with {check_attempt_interval} s interval")
+logging.info(f"Router is [{router_host}]")
+logging.info(f"After reboot will delay for {post_reboot_delay} s")
+logging.info(f"Logging with level {log_level}")
 
 def wait_for_host(host, delay = 10, max_attempts = 1):
     remaining_attempts = max_attempts
