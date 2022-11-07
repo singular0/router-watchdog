@@ -2,6 +2,14 @@ version: '3'
 
 services:
   watchdog:
-    build: .
-    env_file: .env
+    image: ghcr.io/singular0/router-watchdog
+    environment:
+      - ROUTER_HOST=192.168.0.1
+      - ROUTER_PASSWORD=password
+      - CHECK_PERIOD=1
+      - CHECK_HOST=google.com
+      - CHECK_INTERVAL=1
+      - CHECK_ATTEMPT_INTERVAL=10
+      - POST_REBOOT_DELAY=10
+      - LOG_LEVEL=info
     restart: always
