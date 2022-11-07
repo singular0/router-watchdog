@@ -1,5 +1,7 @@
 FROM python:alpine
 
+LABEL org.opencontainers.image.source="https://github.com/singular0/router-watchdog"
+
 WORKDIR /app
 
 COPY requirements.txt /app
