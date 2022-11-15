@@ -57,15 +57,22 @@ def wait_for_host(host, delay = 10, max_attempts = 1):
 def check():
     logging.debug(f"Checking {check_host}")
     if not wait_for_host(check_host, delay=check_attempt_interval, max_attempts=check_attempts):
-        logging.warning("Rebooting router")
-        router = ZTEAPI(router_host, router_password)
-        router.login()
-        router.reboot()
-        sleep(post_reboot_delay)
-        logging.info(f"Waiting for router {router_host}")
-        wait_for_host(router_host, max_attempts=-1)
-        logging.info(f"Router is up, resuming")
-    logging.debug("Check successful")
+        while True:
+            try:
+                logging.warning("Rebooting router")
+                router = ZTEAPI(router_host, router_password)
+                router.login()
+                router.reboot()
+                sleep(post_reboot_delay)
+                logging.info(f"Waiting for router {router_host}")
+                wait_for_host(router_host, max_attempts=-1)
+                logging.info(f"Router is up, resuming")
+                break
+            except ConnectionError:
+                logging.error("Router unavailable while rebooting, will retry in {check_attempt_interval} s")
+                sleep(check_attempt_interval)
+    else:
+        logging.debug("Check successful")
 
 schedule.every(check_interval).minutes.do(check)
 
