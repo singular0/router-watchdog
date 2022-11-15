@@ -46,9 +46,9 @@ class ZTEAPI:
         salt = self._get_cmd("LD")["LD"].encode()
         password_digest = sha256(self._password).hexdigest().upper().encode()
         salted_digest = sha256(password_digest + salt).hexdigest().upper().encode()
-        language_data = self._get_cmd([ "Language", "cr_version", "wa_inner_version" ])
-        self._cr_version = language_data["cr_version"].encode()
-        self._wa_inner_version = language_data["wa_inner_version"].encode()
+        version_data = self._get_cmd([ "cr_version", "wa_inner_version" ])
+        self._cr_version = version_data["cr_version"].encode()
+        self._wa_inner_version = version_data["wa_inner_version"].encode()
         self._version_digest = md5(self._wa_inner_version + self._cr_version).hexdigest().encode()
         return self._post({
             "goformId": "LOGIN",
