@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 
-import requests
+""" ZTE router API """
 
 from copy import deepcopy
 from hashlib import md5, sha256
 from time import time
 
+import requests
+
 class ZTEAPI:
+    """ ZTE router API class """
 
     def __init__(self, host, password):
         self._host = host
@@ -17,6 +20,9 @@ class ZTEAPI:
         self._headers = {
            "Referer": f"http://{host}/"
         }
+        self._cr_version = None
+        self._wa_inner_version = None
+        self._version_digest = None
 
     def _get(self, params):
         url = f"{self._base_api_url}goform_get_cmd_process"
@@ -35,7 +41,7 @@ class ZTEAPI:
 
     def _get_cmd(self, cmd):
         params = {}
-        if type(cmd) == list:
+        if isinstance(cmd, list):
             params["cmd"] = ",".join(cmd)
             params["multi_data"] = "1"
         else:
@@ -43,6 +49,7 @@ class ZTEAPI:
         return self._get(params)
 
     def login(self):
+        """ Authenticate to the router """
         salt = self._get_cmd("LD")["LD"].encode()
         password_digest = sha256(self._password).hexdigest().upper().encode()
         salted_digest = sha256(password_digest + salt).hexdigest().upper().encode()
@@ -56,6 +63,7 @@ class ZTEAPI:
         })
 
     def reboot(self):
+        """ Reboot the router """
         token = self._get_cmd("RD")["RD"].encode()
         token_digest = md5(self._version_digest + token).hexdigest().encode()
         return self._post({

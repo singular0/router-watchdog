@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
 
+""" Router watchdog """
+
 import logging
 import os
 import sys
 
+from time import sleep
+from urllib.request import urlopen
+from urllib.error import HTTPError
+
 import schedule
 
 from dotenv import load_dotenv
-from time import sleep
-from urllib.request import urlopen
 
 from zte_api import ZTEAPI
 
@@ -33,29 +37,32 @@ logging.basicConfig(
     handlers=[log_handler]
 )
 
-logging.info(f"Will check [{check_host}] once in {check_interval} min")
-logging.info(f"Will attempt {check_attempts} times with {check_attempt_interval} s interval")
-logging.info(f"Router is [{router_host}]")
-logging.info(f"After reboot will delay for {post_reboot_delay} s")
-logging.info(f"Logging with level {log_level}")
+logging.info("Will check [%s] once in %d min", check_host, check_interval)
+logging.info("Will attempt %d times with %d s interval", check_attempts, check_attempt_interval)
+logging.info("Router is [%s]", router_host)
+logging.info("After reboot will delay for %d s", post_reboot_delay)
+logging.info("Logging with level %s", log_level)
 
 def wait_for_host(host, delay = 10, max_attempts = 1):
+    """ Wait for the host to respond to a HTTP request without errors """
     remaining_attempts = max_attempts
     while True:
         try:
             urlopen(f"http://{host}")
             return True
-        except:
+        except HTTPError:
             remaining_attempts -= 1
             if remaining_attempts > 0:
-                logging.warning(f"Connection to {host} failed, will retry {remaining_attempts} more times")
+                logging.warning("Connection to %s failed, will retry %d more times",
+                                host, remaining_attempts)
                 sleep(delay)
             else:
-                logging.warning(f"{host} is unavailable")
+                logging.warning("%s is unavailable", host)
                 return False
 
 def check():
-    logging.debug(f"Checking {check_host}")
+    """ Check if the host is available, reboot the router if not """
+    logging.debug("Checking %s", check_host)
     if not wait_for_host(check_host, delay=check_attempt_interval, max_attempts=check_attempts):
         while True:
             try:
@@ -64,12 +71,13 @@ def check():
                 router.login()
                 router.reboot()
                 sleep(post_reboot_delay)
-                logging.info(f"Waiting for router {router_host}")
+                logging.info("Waiting for router %s", router_host)
                 wait_for_host(router_host, max_attempts=-1)
-                logging.info(f"Router is up, resuming")
+                logging.info("Router is up, resuming")
                 break
             except ConnectionError:
-                logging.error("Router unavailable while rebooting, will retry in {check_attempt_interval} s")
+                logging.error("Router unavailable while rebooting, will retry in %d s",
+                              check_attempt_interval)
                 sleep(check_attempt_interval)
     else:
         logging.debug("Check successful")
