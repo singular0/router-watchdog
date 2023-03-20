@@ -4,6 +4,7 @@
 
 import logging
 import os
+import sqlite3
 import sys
 
 from time import sleep
@@ -16,8 +17,7 @@ from requests import RequestException
 
 from zte_api import ZTEAPI
 
-def wait_for_host(host, attempts=1, delay=10, timeout=10):
-    """ Wait for the host to respond to a HTTP request without errors """
+def _wait_for_host(host, attempts=1, delay=10, timeout=10):
     remaining_attempts = attempts
     while True:
         try:
@@ -33,26 +33,33 @@ def wait_for_host(host, attempts=1, delay=10, timeout=10):
                 logging.warning("%s is unavailable", host)
                 return False
 
-def check():
-    """ Check if the host is available, reboot the router if not """
+def _save_event(event_type):
+    cur.execute("INSERT INTO events (type) VALUES (?)", [event_type])
+    con.commit()
+
+def _check():
     logging.debug("Checking WAN [%s]", check_host)
-    wan_available = wait_for_host(check_host, delay=check_retry_interval,
+    wan_available = _wait_for_host(check_host, delay=check_retry_interval,
                                   attempts=check_attempts, timeout=check_timeout)
     if not wan_available:
+        _save_event("wan_fail")
         logging.debug("Checking router [%s]", router_host)
-        router_available = wait_for_host(router_host)
+        router_available = _wait_for_host(router_host)
         if router_available:
-            try:
-                logging.warning("Trying router reboot")
-                if dry_run:
-                    logging.warning("Dry run, reboot skipped")
-                else:
+            _save_event("router_reboot")
+            logging.warning("Trying router reboot")
+            if dry_run:
+                logging.warning("Dry run, reboot skipped")
+            else:
+                try:
                     router = ZTEAPI(router_host, router_password)
                     router.login()
                     router.reboot()
-            except RequestException:
-                logging.error("Router unavailable while rebooting")
+                except RequestException:
+                    _save_event("router_fail")
+                    logging.error("Router unavailable while rebooting")
         else:
+            _save_event("router_fail")
             logging.warning("Router unavailable")
     else:
         logging.debug("WAN available")
@@ -70,6 +77,8 @@ if __name__ == "__main__":
     check_retry_interval = int(os.getenv("CHECK_RETRY_INTERVAL", "10"))
     check_timeout = int(os.getenv("CHECK_TIMEOUT", "10"))
 
+    db_path = os.getenv("DB_PATH", "router-watchdog.db")
+
     log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
 
     dry_run = os.getenv("DRY_RUN")
@@ -86,11 +95,19 @@ if __name__ == "__main__":
     logging.info("HTTP timeout is %d s", check_timeout)
     logging.info("Router is [%s], password is [%s]", router_host, "*" * len(router_password))
     logging.info("Logging with level %s", log_level)
+    logging.info("Event DB is [%s]", db_path)
 
     if dry_run:
         logging.info("Dry run mode")
 
-    schedule.every(check_interval).minutes.do(check)
+    con = sqlite3.connect(db_path)
+    cur = con.cursor()
+    cur.execute("CREATE TABLE IF NOT EXISTS events (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL, " +
+                "type VARCHAR(16) NOT NULL)")
+
+    schedule.every(check_interval).minutes.do(_check)
 
     while True:
         schedule.run_pending()

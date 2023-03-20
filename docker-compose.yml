@@ -11,5 +11,9 @@ services:
       - CHECK_INTERVAL=1
       - CHECK_RETRY_INTERVAL=10
       - CHECK_TIMEOUT=10
+      - DB_PATH=/data/router-watchdog.db
       - LOG_LEVEL=info
+      - DRY_RUN=1
+    volumes:
+      - .:/data
     restart: always
