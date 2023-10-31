@@ -7,8 +7,8 @@ services:
       - ROUTER_HOST=192.168.0.1
       - ROUTER_PASSWORD=password
       - CHECK_HOST=google.com
-      - CHECK_ATTEMPTS=3
-      - CHECK_INTERVAL=1
+      - CHECK_INTERVAL=30
+      - CHECK_RETRY=2
       - CHECK_RETRY_INTERVAL=10
       - CHECK_TIMEOUT=10
       - DB_PATH=/data/router-watchdog.db
