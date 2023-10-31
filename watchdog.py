@@ -1,21 +1,23 @@
 #!/usr/bin/env python3
 
-""" Router watchdog """
+"""Router watchdog."""
 
 import logging
 import os
 import sqlite3
 import sys
-
 from time import sleep
 
-import requests
-import schedule
-
 from dotenv import load_dotenv
+
+import requests
 from requests import RequestException
 
+import schedule
+
+
 from zte_api import ZTEAPI
+
 
 def _wait_for_host(host, attempts=1, delay=10, timeout=10):
     remaining_attempts = attempts
@@ -33,14 +35,16 @@ def _wait_for_host(host, attempts=1, delay=10, timeout=10):
                 logging.warning("%s is unavailable", host)
                 return False
 
+
 def _save_event(event_type):
     cur.execute("INSERT INTO events (type) VALUES (?)", [event_type])
     con.commit()
 
+
 def _check():
     logging.debug("Checking WAN [%s]", check_host)
     wan_available = _wait_for_host(check_host, delay=check_retry_interval,
-                                  attempts=check_attempts, timeout=check_timeout)
+                                   attempts=check_retry, timeout=check_timeout)
     if not wan_available:
         _save_event("wan_fail")
         logging.debug("Checking router [%s]", router_host)
@@ -52,7 +56,7 @@ def _check():
                 logging.warning("Dry run, reboot skipped")
             else:
                 try:
-                    router = ZTEAPI(router_host, router_password)
+                    router = ZTEAPI(router_host, password=router_password)
                     router.login()
                     router.reboot()
                 except RequestException:
@@ -64,6 +68,7 @@ def _check():
     else:
         logging.debug("WAN available")
 
+
 if __name__ == "__main__":
 
     load_dotenv()
@@ -72,8 +77,8 @@ if __name__ == "__main__":
     router_password = os.environ["ROUTER_PASSWORD"]
 
     check_host = os.getenv("CHECK_HOST", "google.com")
-    check_attempts = int(os.getenv("CHECK_ATTEMPTS", "3"))
-    check_interval = int(os.getenv("CHECK_INTERVAL", "1"))
+    check_interval = int(os.getenv("CHECK_INTERVAL", "60"))
+    check_retry = int(os.getenv("CHECK_RETRY", "3"))
     check_retry_interval = int(os.getenv("CHECK_RETRY_INTERVAL", "10"))
     check_timeout = int(os.getenv("CHECK_TIMEOUT", "10"))
 
@@ -91,7 +96,7 @@ if __name__ == "__main__":
     )
 
     logging.info("Will check [%s] every %d min", check_host, check_interval)
-    logging.info("Will try %d times with %d s interval", check_attempts, check_retry_interval)
+    logging.info("Will retry %d times with %d s interval", check_retry, check_retry_interval)
     logging.info("HTTP timeout is %d s", check_timeout)
     logging.info("Router is [%s], password is [%s]", router_host, "*" * len(router_password))
     logging.info("Logging with level %s", log_level)
@@ -107,7 +112,7 @@ if __name__ == "__main__":
                 "timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL, " +
                 "type VARCHAR(16) NOT NULL)")
 
-    schedule.every(check_interval).minutes.do(_check)
+    schedule.every(check_interval).seconds.do(_check)
 
     while True:
         schedule.run_pending()

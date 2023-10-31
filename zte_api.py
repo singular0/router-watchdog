@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-""" ZTE router API """
+"""ZTE router API."""
 
 from copy import deepcopy
 from hashlib import md5, sha256
@@ -8,10 +8,18 @@ from time import time
 
 import requests
 
-class ZTEAPI:
-    """ ZTE router API class """
 
-    def __init__(self, host, password):
+class ZTEAPI:
+    """ZTE router API class."""
+
+    def __init__(self, host, *, password):
+        """
+        ZTE API constructor.
+
+        Parameters:
+            host (str): router hostname
+            password (str): router password
+        """
         self._host = host
         self._password = password.encode()
         self._session = requests.session()
@@ -49,11 +57,16 @@ class ZTEAPI:
         return self._get(params)
 
     def login(self):
-        """ Authenticate to the router """
+        """
+        Authenticate to the router.
+
+        Returns:
+            router response payload
+        """
         salt = self._get_cmd("LD")["LD"].encode()
         password_digest = sha256(self._password).hexdigest().upper().encode()
         salted_digest = sha256(password_digest + salt).hexdigest().upper().encode()
-        version_data = self._get_cmd([ "cr_version", "wa_inner_version" ])
+        version_data = self._get_cmd(["cr_version", "wa_inner_version"])
         self._cr_version = version_data["cr_version"].encode()
         self._wa_inner_version = version_data["wa_inner_version"].encode()
         self._version_digest = md5(self._wa_inner_version + self._cr_version).hexdigest().encode()
@@ -63,7 +76,12 @@ class ZTEAPI:
         })
 
     def reboot(self):
-        """ Reboot the router """
+        """
+        Reboot the router.
+
+        Returns:
+            router response payload
+        """
         token = self._get_cmd("RD")["RD"].encode()
         token_digest = md5(self._version_digest + token).hexdigest().encode()
         return self._post({
