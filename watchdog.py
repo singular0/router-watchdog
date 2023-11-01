@@ -15,8 +15,9 @@ from requests import RequestException
 
 import schedule
 
-
 from zte_api import ZTEAPI
+
+from ui import UI
 
 
 def _wait_for_host(host, attempts=1, delay=10, timeout=10):
@@ -111,6 +112,9 @@ if __name__ == "__main__":
                 "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
                 "timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL, " +
                 "type VARCHAR(16) NOT NULL)")
+
+    ui = UI(db_path)
+    ui.start()
 
     schedule.every(check_interval).seconds.do(_check)
 
