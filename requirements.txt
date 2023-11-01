@@ -1,5 +1,6 @@
 dash
-plotly
+flask
+flask_restful
 plotly_calplot
 python-dotenv
 requests

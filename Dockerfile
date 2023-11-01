@@ -8,5 +8,6 @@ COPY requirements.txt /app
 RUN pip3 install --no-cache-dir -r requirements.txt
 
 COPY *.py /app/
+COPY *.sh /app/
 
-CMD ["python", "/app/server.py"]
+CMD ["/app/app.sh"]

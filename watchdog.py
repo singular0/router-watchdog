@@ -1,10 +1,16 @@
+#!/usr/bin/env python3
+
 """Watchdog process."""
 
 import logging
+import os
+import sys
 from threading import Thread
 from time import sleep
 
 from db import DB
+
+from dotenv import load_dotenv
 
 import requests
 from requests import RequestException
@@ -61,8 +67,8 @@ class Watchdog:
                     return False
 
     def _check(self):
-        logging.debug("Checking WAN [%s]", self._host)
-        wan_available = self._wait_for_host(self._host, delay=self._retry_interval,
+        logging.debug("Checking WAN [%s]", self._check_host)
+        wan_available = self._wait_for_host(self._check_host, delay=self._retry_interval,
                                             attempts=self._check_retries,
                                             timeout=self._check_timeout)
         if not wan_available:
@@ -89,12 +95,62 @@ class Watchdog:
             logging.debug("WAN available")
 
     def _run(self):
+        logging.debug("Running scheduler loop in a thread...")
         while True:
             schedule.run_pending()
             sleep(1)
 
     def start(self):
         """Start watchdog process."""
+        logging.debug("Starting scheduler...")
+
         schedule.every(self._check_interval).seconds.do(self._check)
 
-        Thread(target=self._run)
+        thread = Thread(target=self._run)
+        thread.start()
+
+
+if __name__ == "__main__":
+
+    load_dotenv()
+
+    router_host = os.environ["ROUTER_HOST"]
+    router_password = os.environ["ROUTER_PASSWORD"]
+
+    check_host = os.getenv("CHECK_HOST", "google.com")
+    check_interval = int(os.getenv("CHECK_INTERVAL", "60"))
+    check_retry = int(os.getenv("CHECK_RETRY", "3"))
+    check_retry_interval = int(os.getenv("CHECK_RETRY_INTERVAL", "10"))
+    check_timeout = int(os.getenv("CHECK_TIMEOUT", "10"))
+
+    db_path = os.getenv("DB_PATH", "router-watchdog.db")
+
+    log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
+
+    dry_run = os.getenv("DRY_RUN")
+
+    log_handler = logging.StreamHandler(sys.stdout)
+    logging.basicConfig(
+        level=log_level,
+        format="%(asctime)s %(levelname)s %(message)s",
+        handlers=[log_handler]
+    )
+
+    logging.info("Will check [%s] every %d min", check_host, check_interval)
+    logging.info("Will retry %d times with %d s interval", check_retry, check_retry_interval)
+    logging.info("HTTP timeout is %d s", check_timeout)
+    logging.info("Router is [%s], password is [%s]", router_host, "*" * len(router_password))
+    logging.info("Logging with level %s", log_level)
+    logging.info("Event DB is [%s]", db_path)
+
+    if dry_run:
+        logging.info("Dry run mode")
+
+    db = DB(db_path=db_path)
+
+    watchdog = Watchdog(check_host=check_host, check_retries=check_retry,
+                        check_timeout=check_timeout, check_interval=check_interval,
+                        retry_interval=check_retry_interval, dry_run=dry_run,
+                        router_host=router_host, router_password=router_password,
+                        db=db)
+    watchdog.start()
