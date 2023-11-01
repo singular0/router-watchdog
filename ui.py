@@ -1,8 +1,8 @@
 """UI."""
 
-import sqlite3
-
 from dash import Dash, dcc, html
+
+from db import DB
 
 import pandas as pd
 
@@ -12,17 +12,17 @@ from plotly_calplot import calplot
 class UI:
     """UI class."""
 
-    def __init__(self, db_path: str):
+    def __init__(self, *, db: DB):
         """
         Construct UI class.
 
         Parameters:
-            db_path (str): path to SQLite database
+            db (DB): database instance
         """
-        self._db_path = db_path
+        self._db = db
 
     def _layout(self):
-        con = sqlite3.connect(self._db_path)
+        con = self._db.get_con()
         df = pd.read_sql_query("SELECT count(id) AS reboots, "
                                "strftime('%Y-%m-%d', timestamp) AS date "
                                "FROM events "
@@ -33,7 +33,7 @@ class UI:
 
         fig_cal = calplot(df, x='date', y='reboots',
                           month_lines=False,
-                          colorscale='peach',
+                          colorscale='burg',
                           showscale=True,
                           cmap_min=0,
                           title='Router Reboots')
