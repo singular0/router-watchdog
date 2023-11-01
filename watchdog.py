@@ -31,6 +31,7 @@ class Watchdog:
             check_timeout (int): check request timeout in seconds
             dry_run (bool): do not actually reboot the router
             router_host (str): router host
+            router_password (str): router password
             db (DB): datbase
         """
         self._check_host = check_host
