@@ -52,11 +52,26 @@ class Stats(Resource):
         """
         con = db.get_con()
         cur = con.cursor()
+
+        # Uptime
         cur.execute("SELECT max(timestamp) FROM events")
         result = cur.fetchone()
-        last_reboot_time = datetime.strptime(result[0], '%Y-%m-%d %H:%M:%S').timestamp()
-        uptime = _diff_times(time(), last_reboot_time)
-        return {'uptime': uptime}
+        uptime = '∞'
+        if result:
+            last_reboot_time = datetime.strptime(result[0], '%Y-%m-%d %H:%M:%S').timestamp()
+            uptime = _diff_times(time(), last_reboot_time)
+
+        # Reboots today
+        cur.execute("SELECT count(id) "
+                    "FROM events "
+                    "WHERE timestamp >= date('now', 'localtime', 'start of day')")
+        result = cur.fetchone()
+        reboots_today = result[0]
+
+        return {
+            'uptime': uptime,
+            'reboots_today': reboots_today
+        }
 
 
 def _layout():

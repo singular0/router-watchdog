@@ -25,7 +25,10 @@ Variable               | Description
         widget:
             type: customapi
             url: http://192.168.0.1:8050/stats
+            refreshInterval: 60000
             mappings:
                 - field: uptime
                   label: Uptime
+                - field: reboots_today
+                  label: Reboots Today
 ```
