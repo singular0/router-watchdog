@@ -27,18 +27,17 @@ db = None
 
 
 def _diff_times(time1: int, time2: int):
-    dsec = time1 - time2
-    dmin = int(dsec / 60)
-    dsec = int(dsec % 60)
-    if dmin < 60:
-        return f'{dmin:02}:{dsec:02}'
-    dhour = int(dmin / 60)
-    dmin = int(dmin % 60)
-    if dhour < 24:
-        return f'{dhour:02}:{dmin:02}:{dsec:02}'
-    dday = int(dhour / 24)
-    dhour = int(dhour % 24)
-    return f'{dday:} days {dhour:02}:{dmin:02}:{dsec:02}'
+    sec = time1 - time2
+    min = int(sec / 60)
+    sec = int(sec % 60)
+    hour = int(min / 60)
+    min = int(min % 60)
+    if hour < 24:
+        return f'{hour:02}:{min:02}'
+    day = int(hour / 24)
+    hour = int(hour % 24)
+    s = 's' if day > 1 else ''
+    return f'{day:} day{s} {hour:02}:{min:02}'
 
 
 class Stats(Resource):
