@@ -12,3 +12,20 @@ Variable               | Description
 `DB_PATH`              | Optional. Path to SQLite file with check event history. Default is `router-watchdog.db`.
 `LOG_LEVEL`            | Optional. Log level, one of [Python Logging Levels](https://docs.python.org/3/library/logging.html#levels). Default is `INFO`.
 `DRY_RUN`              | If defined, no actual router reboot will happen.
+
+# Homepage Widget
+
+```yaml
+    - Router Watchdog:
+        description: Reboots unresponsive router
+        icon: router.png
+        server: local
+        container: router-watchdog
+        href: http://192.168.0.1:8050/
+        widget:
+            type: customapi
+            url: http://192.168.0.1:8050/stats
+            mappings:
+                - field: uptime
+                  label: Uptime
+```
