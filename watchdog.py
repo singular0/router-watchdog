@@ -47,7 +47,7 @@ class Watchdog:
         self._check_timeout = check_timeout
         self._dry_run = dry_run
         self._router_host = router_host
-        self._router_pasword = router_password
+        self._router_password = router_password
         self._db = db
 
     def _wait_for_host(self, host, attempts=1, delay=10, timeout=10):
