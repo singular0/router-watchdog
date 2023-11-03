@@ -54,7 +54,7 @@ class Stats(Resource):
         cur = con.cursor()
 
         # Uptime
-        cur.execute("SELECT max(timestamp) FROM events")
+        cur.execute("SELECT max(timestamp) FROM events WHERE type = 'router_reboot'")
         result = cur.fetchone()
         uptime = '∞'
         if result:
@@ -64,7 +64,8 @@ class Stats(Resource):
         # Reboots today
         cur.execute("SELECT count(id) "
                     "FROM events "
-                    "WHERE timestamp >= date('now', 'localtime', 'start of day')")
+                    "WHERE type = 'router_reboot' "
+                    "AND timestamp >= date('now', 'localtime', 'start of day')")
         result = cur.fetchone()
         reboots_today = result[0]
 
@@ -103,6 +104,7 @@ if __name__ == "__main__":
     db_path = os.getenv("DB_PATH", "router-watchdog.db")
 
     log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
+    debug = (log_level == 'DEBUG')
 
     log_handler = logging.StreamHandler(sys.stdout)
     logging.basicConfig(
@@ -122,4 +124,4 @@ if __name__ == "__main__":
     api = Api(server)
     api.add_resource(Stats, '/stats')
     app.layout = _layout
-    app.run(debug=True, host='0.0.0.0')
+    app.run(debug=debug, host='0.0.0.0')
