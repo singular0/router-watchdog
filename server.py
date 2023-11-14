@@ -22,22 +22,10 @@ import pandas as pd
 
 from plotly_calplot import calplot
 
+from util import diff_times
+
 
 db = None
-
-
-def _diff_times(time1: int, time2: int):
-    sec = time1 - time2
-    min = int(sec / 60)
-    sec = int(sec % 60)
-    hour = int(min / 60)
-    min = int(min % 60)
-    if hour < 24:
-        return f'{hour:02}:{min:02}'
-    day = int(hour / 24)
-    hour = int(hour % 24)
-    s = 's' if day > 1 else ''
-    return f'{day:} day{s} {hour:02}:{min:02}'
 
 
 class Stats(Resource):
@@ -59,7 +47,7 @@ class Stats(Resource):
         uptime = '∞'
         if result:
             last_reboot_time = datetime.strptime(result[0], '%Y-%m-%d %H:%M:%S').timestamp()
-            uptime = _diff_times(time(), last_reboot_time)
+            uptime = diff_times(time(), last_reboot_time)
 
         # Reboots today
         cur.execute("SELECT count(id) "
