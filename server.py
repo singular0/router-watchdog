@@ -79,6 +79,8 @@ class Stats(Resource):
 
 
 def _layout():
+    graphs = []
+
     con = db.get_con()
 
     # Number of reboots
@@ -91,12 +93,14 @@ def _layout():
         GROUP BY strftime('%Y-%m-%d', timestamp)
     """
     reboots_df = pd.read_sql_query(query, con, parse_dates=['date'])
-    reboots_fig = calplot(reboots_df, x='date', y='reboots',
-                          month_lines=False,
-                          colorscale='burg',
-                          showscale=True,
-                          cmap_min=0,
-                          title='Router Reboots')
+    if not reboots_df.empty:
+        reboots_fig = calplot(reboots_df, x='date', y='reboots',
+                              month_lines=False,
+                              colorscale='burg',
+                              showscale=True,
+                              cmap_min=0,
+                              title='Router Reboots')
+        graphs.append(dcc.Graph(id='reboots_graph', figure=reboots_fig))
 
     # Average download speed
     query = """
@@ -108,17 +112,16 @@ def _layout():
         GROUP BY strftime('%Y-%m-%d', timestamp)
     """
     dl_df = pd.read_sql_query(query, con, parse_dates=['date'])
-    dl_fig = calplot(dl_df, x='date', y='avg_download_speed',
-                     month_lines=False,
-                     colorscale='rdylgn',
-                     showscale=True,
-                     cmap_min=0,
-                     title='Average Download Speed')
+    if not dl_df.empty:
+        dl_fig = calplot(dl_df, x='date', y='avg_download_speed',
+                         month_lines=False,
+                         colorscale='rdylgn',
+                         showscale=True,
+                         cmap_min=0,
+                         title='Average Download Speed')
+        graphs.append(dcc.Graph(id='dl_graph', figure=dl_fig))
 
-    return html.Div([
-        dcc.Graph(id='reboots_graph', figure=reboots_fig),
-        dcc.Graph(id='dl_graph', figure=dl_fig),
-    ])
+    return html.Div(graphs)
 
 
 if __name__ == "__main__":
