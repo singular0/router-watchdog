@@ -66,7 +66,7 @@ class Stats(Resource):
             FROM events
             WHERE
                 type = 'download_test' AND
-                timestamp >= date('now', 'localtime', 'start of day'
+                timestamp >= date('now', 'localtime', 'start of day')
         """)
         result = cur.fetchone()
         avg_dl_speed_today = result[0]
