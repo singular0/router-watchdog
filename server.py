@@ -50,38 +50,74 @@ class Stats(Resource):
             uptime = diff_times(time(), last_reboot_time)
 
         # Reboots today
-        cur.execute("SELECT count(id) "
-                    "FROM events "
-                    "WHERE type = 'router_reboot' "
-                    "AND timestamp >= date('now', 'localtime', 'start of day')")
+        cur.execute("""
+            SELECT count(id)
+            FROM events
+            WHERE
+                type = 'router_reboot' AND
+                timestamp >= date('now', 'localtime', 'start of day')
+        """)
         result = cur.fetchone()
         reboots_today = result[0]
 
+        # Average download speed today
+        cur.execute("""
+            SELECT avg(value)
+            FROM events
+            WHERE
+                type = 'download_test' AND
+                timestamp >= date('now', 'localtime', 'start of day'
+        """)
+        result = cur.fetchone()
+        avg_dl_speed_today = result[0]
+
         return {
             'uptime': uptime,
-            'reboots_today': reboots_today
+            'reboots_today': reboots_today,
+            'avg_dl_speed_today': avg_dl_speed_today,
         }
 
 
 def _layout():
     con = db.get_con()
-    df = pd.read_sql_query("SELECT count(id) AS reboots, "
-                           "strftime('%Y-%m-%d', timestamp) AS date "
-                           "FROM events "
-                           "WHERE type = 'router_reboot' "
-                           "GROUP BY strftime('%Y-%m-%d', timestamp)",
-                           con,
-                           parse_dates=['date'])
 
-    fig_cal = calplot(df, x='date', y='reboots',
-                      month_lines=False,
-                      colorscale='burg',
-                      showscale=True,
-                      cmap_min=0,
-                      title='Router Reboots')
+    # Number of reboots
+    query = """
+        SELECT
+            count(id) AS reboots,
+            strftime('%Y-%m-%d', timestamp) AS date
+        FROM events
+        WHERE type = 'router_reboot'
+        GROUP BY strftime('%Y-%m-%d', timestamp)
+    """
+    reboots_df = pd.read_sql_query(query, con, parse_dates=['date'])
+    reboots_fig = calplot(reboots_df, x='date', y='reboots',
+                          month_lines=False,
+                          colorscale='burg',
+                          showscale=True,
+                          cmap_min=0,
+                          title='Router Reboots')
+
+    # Average download speed
+    query = """
+        SELECT
+            avg(value) AS avg_download_speed,
+            strftime('%Y-%m-%d', timestamp) AS date
+        FROM events
+        WHERE type = 'download_test'
+        GROUP BY strftime('%Y-%m-%d', timestamp)
+    """
+    dl_df = pd.read_sql_query(query, con, parse_dates=['date'])
+    dl_fig = calplot(dl_df, x='date', y='avg_download_speed',
+                     month_lines=False,
+                     colorscale='rdylgn',
+                     showscale=True,
+                     cmap_min=0,
+                     title='Average Download Speed')
 
     return html.Div([
-        dcc.Graph(id='graph', figure=fig_cal),
+        dcc.Graph(id='reboots_graph', figure=reboots_fig),
+        dcc.Graph(id='dl_graph', figure=dl_fig),
     ])
 
 

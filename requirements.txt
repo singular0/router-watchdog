@@ -5,3 +5,4 @@ plotly_calplot
 python-dotenv
 requests
 schedule
+speedtest-cli

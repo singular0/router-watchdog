@@ -28,19 +28,24 @@ class DB:
     def _create(self):
         con = self.get_con()
         cur = con.cursor()
-        cur.execute("CREATE TABLE IF NOT EXISTS events ("
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
-                    "timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL, "
-                    "type VARCHAR(16) NOT NULL)")
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS events (
+                id        INTEGER     PRIMARY KEY AUTOINCREMENT NOT NULL,
+                timestamp TIMESTAMP   DEFAULT CURRENT_TIMESTAMP NOT NULL,
+                type      VARCHAR(16) NOT NULL,
+                value     REAL        DEFAULT 0.0 NOT NULL
+            )
+            """)
 
-    def save_event(self, event_type):
+    def save_event(self, event_type: str, *, value: float = 0.0):
         """
         Save new event.
 
         Parameters:
             event_type (str): event type
+            value (float): value associated with event
         """
         con = self.get_con()
         cur = con.cursor()
-        cur.execute("INSERT INTO events (type) VALUES (?)", [event_type])
+        cur.execute("INSERT INTO events (type, value) VALUES (?, ?)", [event_type, value])
         con.commit()
