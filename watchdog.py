@@ -29,7 +29,8 @@ class Watchdog:
 
     def __init__(self, *, check_host: str, check_interval: int, retry_interval: int,
                  check_retries: int, check_timeout: int, dry_run: bool = False,
-                 router_host: str, router_password: str, speedtest_interval: int, db: DB):
+                 router_host: str, router_user: str = None, router_password: str,
+                 router_model: str, speedtest_interval: int, db: DB):
         """
         Construct watchdog process class.
 
@@ -42,6 +43,8 @@ class Watchdog:
             speedtest_interval (int): speed test interval in seconds
             dry_run (bool): do not actually reboot the router
             router_host (str): router host
+            router_user (str): router user
+            router_model (str): router model
             router_password (str): router password
             db (DB): datbase
         """
@@ -52,6 +55,8 @@ class Watchdog:
         self._check_timeout = check_timeout
         self._dry_run = dry_run
         self._router_host = router_host
+        self._router_user = router_user
+        self._router_model = router_model
         self._router_password = router_password
         self._speedtest_interval = speedtest_interval
         self._db = db
@@ -88,7 +93,8 @@ class Watchdog:
                     logging.warning("Dry run, reboot skipped")
                 else:
                     try:
-                        router = ZTEAPI(self._router_host, password=self._router_password)
+                        router = ZTEAPI(self._router_host, user=self._router_user,
+                                        password=self._router_password, model=self._router_model)
                         router.login()
                         router.reboot()
                     except RequestException:
@@ -135,7 +141,9 @@ if __name__ == "__main__":
     load_dotenv()
 
     router_host = os.environ["ROUTER_HOST"]
+    router_user = os.getenv("ROUTER_USER")
     router_password = os.environ["ROUTER_PASSWORD"]
+    router_model = os.getenv("ROUTER_MODEL", "MC888")
 
     check_host = os.getenv("CHECK_HOST", "google.com")
     check_interval = int(os.getenv("CHECK_INTERVAL", "60"))
@@ -162,7 +170,10 @@ if __name__ == "__main__":
     logging.info("Will retry %d times with %d s interval", check_retry, check_retry_interval)
     logging.info("HTTP timeout is %d s", check_timeout)
     logging.info("Will check speed every %d s", speedtest_interval)
-    logging.info("Router is [%s], password is [%s]", router_host, "*" * len(router_password))
+    logging.info("Router:")
+    logging.info("  model: [%s]", router_model)
+    logging.info("  address: [%s]", router_host)
+    logging.info("  user: [%s], password: [%s]", router_user, "*" * len(router_password))
     logging.info("Logging with level %s", log_level)
     logging.info("Event DB is [%s]", db_path)
 
@@ -175,5 +186,6 @@ if __name__ == "__main__":
                         check_timeout=check_timeout, check_interval=check_interval,
                         retry_interval=check_retry_interval, dry_run=dry_run,
                         router_host=router_host, router_password=router_password,
+                        router_user=router_user, router_model=router_model,
                         db=db, speedtest_interval=speedtest_interval)
     watchdog.start()
