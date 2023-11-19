@@ -38,16 +38,17 @@ class Stats(Resource):
         Returns:
             dict: statistics
         """
+        stats = {}
+
         con = db.get_con()
         cur = con.cursor()
 
         # Uptime
         cur.execute("SELECT max(timestamp) FROM events WHERE type = 'router_reboot'")
         result = cur.fetchone()
-        uptime = '∞'
         if result:
             last_reboot_time = datetime.strptime(result[0], '%Y-%m-%d %H:%M:%S').timestamp()
-            uptime = diff_times(time(), last_reboot_time)
+            stats['uptime'] = diff_times(time(), last_reboot_time)
 
         # Reboots today
         cur.execute("""
@@ -58,7 +59,7 @@ class Stats(Resource):
                 timestamp >= date('now', 'localtime', 'start of day')
         """)
         result = cur.fetchone()
-        reboots_today = result[0]
+        stats['reboots_today'] = result[0]
 
         # Average download speed today
         cur.execute("""
@@ -69,19 +70,17 @@ class Stats(Resource):
                 timestamp >= date('now', 'localtime', 'start of day')
         """)
         result = cur.fetchone()
-        avg_dl_speed_today = result[0]
+        if result:
+            stats['avg_dl_speed_today'] = result[0]
 
-        return {
-            'uptime': uptime,
-            'reboots_today': reboots_today,
-            'avg_dl_speed_today': avg_dl_speed_today,
-        }
+        return stats
 
 
 def _layout():
     graphs = []
 
     con = db.get_con()
+    cur = con.cursor()
 
     # Number of reboots
     query = """
@@ -101,6 +100,18 @@ def _layout():
                               cmap_min=0,
                               title='Router Reboots')
         graphs.append(dcc.Graph(id='reboots_graph', figure=reboots_fig))
+
+    # Last download speed
+    cur.execute("""
+        SELECT value
+        FROM events
+        WHERE type = 'download_test'
+        ORDER BY timestamp DESC
+        LIMIT 1
+    """)
+    result = cur.fetchone()
+    if result:
+        graphs.append(html.P(f'Last speed {result[0]}'))
 
     # Average download speed
     query = """
