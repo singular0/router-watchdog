@@ -42,7 +42,10 @@ class ZTERouter(RebootableDevice):
         Raises:
             DeviceConfigError: in case of configuration error
         """
-        self._model = ZTERouterModel[os.getenv('ROUTER_MODEL', DEFAULT_MODEL)]
+        try:
+            self._model = ZTERouterModel[os.getenv('ZTE_ROUTER_MODEL', DEFAULT_MODEL)]
+        except KeyError as err:
+            raise DeviceConfigError(f'Unsupported ZTE_ROUTER_MODEL: {err}')
 
         self._host = os.getenv('ZTE_ROUTER_HOST')
         if not self._host:
