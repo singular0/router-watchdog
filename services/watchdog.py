@@ -108,7 +108,7 @@ class Watchdog:
             logging.error(f"Speed test failed: {ex}")
             self._event_handler(WatchdogEvent.SpeedtestFail)
 
-    def _run(self):
+    def _scheduler(self):
         logging.debug("Running scheduler loop in a thread...")
         while True:
             schedule.run_pending()
@@ -123,5 +123,5 @@ class Watchdog:
             logging.debug(f"Scheduling speed test every {self._speedtest_interval}s")
             schedule.every(self._speedtest_interval).seconds.do(self._speedtest)
 
-        thread = Thread(target=self._run)
+        thread = Thread(target=self._scheduler)
         thread.start()
