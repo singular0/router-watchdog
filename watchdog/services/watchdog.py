@@ -2,9 +2,12 @@
 
 import logging
 import os
+import sys
 from enum import Enum
 from threading import Thread
 from time import sleep
+
+from dotenv import load_dotenv
 
 import requests
 from requests import RequestException
@@ -13,7 +16,9 @@ import schedule
 
 import speedtest
 
-from util import format_speed
+from ..db import DB
+from ..devices.zte_router import ZTERouter
+from ..util import human_readable as hr
 
 
 class WatchdogEvent(Enum):
@@ -102,7 +107,7 @@ class Watchdog:
             st = speedtest.Speedtest()
             st.get_best_server()
             download = st.download()
-            logging.debug(f"Download speed is {format_speed(download)}")
+            logging.debug(f"Download speed is {hr.speed(download)}")
             self._event_handler(WatchdogEvent.DownloadTest, value=download)
         except Exception as ex:
             logging.error(f"Speed test failed: {ex}")
@@ -125,3 +130,42 @@ class Watchdog:
 
         thread = Thread(target=self._scheduler)
         thread.start()
+
+
+if __name__ == "__main__":
+
+    load_dotenv()
+
+    log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
+    log_handler = logging.StreamHandler(sys.stdout)
+    logging.basicConfig(
+        level=log_level,
+        format="%(asctime)s %(levelname)s %(message)s",
+        handlers=[log_handler]
+    )
+    logging.info(f"Logging with level {log_level}")
+
+    db_path = os.getenv("DB_PATH", "router-watchdog.db")
+    logging.info(f"Event DB is [{db_path}]")
+    db = DB(db_path=db_path)
+
+    dry_run = os.getenv("DRY_RUN")
+    if dry_run:
+        logging.warning(f"Dry run mode (DRY_RUN={dry_run})")
+
+    device = ZTERouter()
+
+    def _event_handler(event: WatchdogEvent, value: float = 0):
+        db.save_event(event.value, value)
+        if event == WatchdogEvent.RouterReboot:
+            if dry_run:
+                logging.warning("Dry run, reboot skipped")
+            else:
+                try:
+                    device.reboot()
+                except RequestException:
+                    db.save_event(event.value, value)
+                    logging.error("Router unavailable while rebooting")
+
+    watchdog = Watchdog(event_handler=_event_handler)
+    watchdog.start()

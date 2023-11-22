@@ -2,20 +2,24 @@ version: '3'
 
 services:
   watchdog:
-    image: ghcr.io/singular0/router-watchdog
+    build: .
+    #image: ghcr.io/singular0/router-watchdog
     environment:
-      - ROUTER_HOST=192.168.0.1
-      - ROUTER_PASSWORD=password
+      - ZTE_ROUTER_HOST=192.168.0.1
+      - ZTE_ROUTER_USER=user
+      - ZTE_ROUTER_PASSWORD=password
+      - ZTE_ROUTER_MODEL=MC888
       - CHECK_HOST=google.com
       - CHECK_INTERVAL=30
       - CHECK_RETRY=2
       - CHECK_RETRY_INTERVAL=10
       - CHECK_TIMEOUT=10
-      - DB_PATH=/data/router-watchdog.db
-      - LOG_LEVEL=info
+      - SPEEDTEST_INTERVAL=60
+      - DB_PATH=/app/router-watchdog.db
+      - LOG_LEVEL=debug
       - DRY_RUN=1
     ports:
       - 8050:8050
     volumes:
-      - .:/data
+      - ./router-watchdog.db:/app/router-watchdog.db
     restart: always

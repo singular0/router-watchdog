@@ -7,8 +7,7 @@ WORKDIR /app
 COPY requirements.txt /app
 RUN pip3 install --no-cache-dir -r requirements.txt
 
-COPY devices/*.py /app/devices/
-COPY services/*.py /app/services/
+COPY watchdog /app/watchdog/
 COPY *.py /app/
 COPY *.sh /app/
 

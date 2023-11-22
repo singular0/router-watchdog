@@ -6,11 +6,8 @@ import logging
 import os
 import sys
 from datetime import datetime
-from time import time
 
 from dash import Dash, dcc, html
-
-from db import DB
 
 from dotenv import load_dotenv
 
@@ -22,8 +19,8 @@ import pandas as pd
 
 from plotly_calplot import calplot
 
-from util import diff_times
-
+import watchdog.util.human_readable as hr
+from watchdog.db import DB
 
 db = None
 
@@ -47,8 +44,9 @@ class Stats(Resource):
         cur.execute("SELECT max(timestamp) FROM events WHERE type = 'router_reboot'")
         result = cur.fetchone()
         if result:
-            last_reboot_time = datetime.strptime(result[0], '%Y-%m-%d %H:%M:%S').timestamp()
-            stats['uptime'] = diff_times(time(), last_reboot_time)
+            last_reboot = datetime.strptime(result[0], '%Y-%m-%d %H:%M:%S')
+            uptime = datetime.now() - last_reboot
+            stats['uptime'] = hr.speed(uptime)
 
         # Reboots today
         cur.execute("""
